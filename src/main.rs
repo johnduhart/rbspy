@@ -700,7 +700,7 @@ fn record(
             }
             Err(x) => {
                 if let Some(MemoryCopyError::ProcessEnded) = x.downcast_ref() {
-                    debug!("Process {} ended", pid);
+                    warn!("Process {} ended", pid);
                     return Ok(());
                 }
 

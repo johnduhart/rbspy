@@ -90,6 +90,8 @@ impl StackTraceGetter {
                     if let Some(source) = e.source() {
                         match source.downcast_ref::<remoteprocess::Error>().ok_or(source) {
                             Ok(remoteprocess::Error::IOError(e)) => {
+                                warn!("Received an IO error {}", e);
+
                                 match e.kind() {
                                     std::io::ErrorKind::NotFound => {
                                         return Err(MemoryCopyError::ProcessEnded)
@@ -102,16 +104,22 @@ impl StackTraceGetter {
                                 };
                             }
                             #[cfg(target_os = "linux")]
-                            Ok(remoteprocess::Error::NixError(e)) => match e {
-                                nix::Error::Sys(nix::errno::Errno::EPERM) => {
-                                    return Err(MemoryCopyError::ProcessEnded);
+                            Ok(remoteprocess::Error::NixError(e)) => {
+                                warn!("Received a nix error {:?}", e);
+
+                                match e {
+                                    nix::Error::Sys(nix::errno::Errno::EPERM) => {
+                                        warn!("Returning process ended");
+                                        return Err(MemoryCopyError::ProcessEnded);
+                                    }
+                                    _ => {}
                                 }
-                                _ => {}
                             },
                             _ => {}
                         }
                     }
 
+                    warn!("Other error: {:?}", e);
                     Err(e.into())
                 })?;
         }
